@@ -42,7 +42,7 @@ npm install next@14.2.35 react@18 react-dom@18 d3@7.9.0 @anthropic-ai/sdk@0.82.0
 
 ---
 
-## - [ ] Phase 2 — Types & Lib Utilities
+## - [x] Phase 2 — Types & Lib Utilities
 
 **Goal:** All shared types and pure helper functions. No React, no D3 at runtime.
 
