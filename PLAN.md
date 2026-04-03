@@ -75,7 +75,7 @@ npm install next@14.2.35 react@18 react-dom@18 d3@7.9.0 @anthropic-ai/sdk@0.82.0
 
 ---
 
-## - [ ] Phase 3 — API Routes
+## - [x] Phase 3 — API Routes
 
 **Goal:** Two working API endpoints. No frontend yet.
 
@@ -104,7 +104,7 @@ curl -X POST http://localhost:3000/api/explain \
 
 ---
 
-## - [ ] Phase 4 — ForceGraph Component
+## - [x] Phase 4 — ForceGraph Component
 
 **Goal:** Animated D3 graph renders in isolation with stub data.
 
