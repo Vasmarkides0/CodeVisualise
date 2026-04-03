@@ -129,7 +129,7 @@ curl -X POST http://localhost:3000/api/explain \
 
 ---
 
-## - [ ] Phase 5 — UI Wiring & Pre-cache
+## - [x] Phase 5 — UI Wiring & Pre-cache
 
 **Goal:** Full working app end-to-end.
 
