@@ -72,17 +72,14 @@ export default function HomePage() {
   }
 
   const handleNodeClick = useCallback(async (node: GraphNode) => {
-    setSelectedFile(node)
-
     const cached = cacheRef.current.get(node.path)
-    if (cached) {
-      setExplanation(cached)
-      setExplainLoading(false)
-      return
-    }
 
-    setExplainLoading(true)
-    setExplanation(null)
+    // All three updates in one batch — sidebar opens with correct state immediately
+    setSelectedFile(node)
+    setExplanation(cached ?? null)
+    setExplainLoading(!cached)
+
+    if (cached) return
 
     try {
       const contentRes = await fetch(
