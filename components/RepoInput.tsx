@@ -1,15 +1,15 @@
 'use client'
 
-import { useState, FormEvent } from 'react'
+import { FormEvent } from 'react'
 
 interface Props {
+  value: string
+  onChange: (url: string) => void
   onSubmit: (url: string) => void
   loading: boolean
 }
 
-export function RepoInput({ onSubmit, loading }: Props) {
-  const [value, setValue] = useState('')
-
+export function RepoInput({ value, onChange, onSubmit, loading }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const trimmed = value.trim()
@@ -17,21 +17,83 @@ export function RepoInput({ onSubmit, loading }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex gap-2 p-4 bg-slate-900 border-b border-slate-700">
-      <input
-        type="url"
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        placeholder="https://github.com/owner/repo"
-        className="flex-1 bg-slate-800 text-slate-100 rounded px-3 py-2 text-sm border border-slate-600 focus:outline-none focus:border-blue-500"
-      />
+    <header style={{
+      height: '52px',
+      background: '#ffffff',
+      borderBottom: '1px solid #e5e7eb',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      display: 'flex',
+      alignItems: 'center',
+      padding: '0 20px',
+      gap: '16px',
+      flexShrink: 0,
+    }}>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <rect x="1" y="1" width="7" height="7" rx="1.5" fill="#6366f1" />
+          <rect x="10" y="1" width="7" height="7" rx="1.5" fill="#6366f1" />
+          <rect x="1" y="10" width="7" height="7" rx="1.5" fill="#6366f1" />
+          <rect x="10" y="10" width="7" height="7" rx="1.5" fill="#6366f1" />
+        </svg>
+        <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.01em' }}>
+          CodeVisualise
+        </span>
+      </div>
+
+      {/* Input — centered */}
+      <form
+        onSubmit={handleSubmit}
+        style={{ flex: 1, display: 'flex', justifyContent: 'center' }}
+      >
+        <input
+          type="url"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="https://github.com/owner/repo"
+          style={{
+            width: '480px',
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '8px 14px',
+            fontSize: '14px',
+            color: '#374151',
+            outline: 'none',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+          }}
+          onFocus={e => {
+            e.target.style.borderColor = '#6366f1'
+            e.target.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)'
+          }}
+          onBlur={e => {
+            e.target.style.borderColor = '#e5e7eb'
+            e.target.style.boxShadow = 'none'
+          }}
+        />
+      </form>
+
+      {/* Button */}
       <button
-        type="submit"
+        onClick={() => { const t = value.trim(); if (t) onSubmit(t) }}
         disabled={loading}
-        className="px-4 py-2 bg-blue-600 text-white rounded text-sm disabled:opacity-50 hover:bg-blue-700 transition-colors"
+        style={{
+          background: loading ? '#a5b4fc' : '#6366f1',
+          color: '#ffffff',
+          borderRadius: '8px',
+          padding: '8px 18px',
+          fontSize: '14px',
+          fontWeight: 500,
+          border: 'none',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          flexShrink: 0,
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => { if (!loading) (e.target as HTMLButtonElement).style.background = '#4f46e5' }}
+        onMouseLeave={e => { if (!loading) (e.target as HTMLButtonElement).style.background = '#6366f1' }}
       >
         {loading ? 'Loading…' : 'Visualize'}
       </button>
-    </form>
+    </header>
   )
 }

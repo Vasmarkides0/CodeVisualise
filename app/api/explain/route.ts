@@ -30,9 +30,10 @@ export async function POST(req: NextRequest) {
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 300,
+      system: 'You are a senior developer explaining code to a smart non-technical person. For the given file, write exactly 2-3 sentences answering: what does this file do, and why does it exist in this project? Rules: no markdown, no bullet points, no headers, no backticks, no code formatting. Never start with "This file" or "This code". Get straight to the point. Be specific to what the file actually does — not generic. If it is a config file say what it configures and why that matters. If it is a utility say what problem it solves. If it is a component say what the user sees or experiences. Write like you are explaining to a smart friend, not writing documentation.',
       messages: [{
         role: 'user',
-        content: `Briefly explain what the file "${filename}" does in 2-4 sentences. Focus on its purpose, key exports, and how it fits into the wider project. Be concise.\n\n\`\`\`\n${truncated}\n\`\`\``,
+        content: `File: "${filename}"\n\n${truncated}`,
       }],
     })
 
