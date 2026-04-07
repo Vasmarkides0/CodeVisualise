@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { RepoInput } from '@/components/RepoInput'
 import { Sidebar } from '@/components/Sidebar'
 import type { GraphData, GraphNode } from '@/types'
+import type { RenderMode } from '@/components/ForceGraph'
 
 const ForceGraph = dynamic(
   () => import('@/components/ForceGraph').then(m => m.ForceGraph),
@@ -77,9 +78,17 @@ export default function HomePage() {
   const [explanation, setExplanation]   = useState<string | null>(null)
   const [explainLoading, setExplainLoading] = useState(false)
   const [highlightedDirPath, setHighlightedDirPath] = useState<string | undefined>(undefined)
+  const [dirFiles, setDirFiles] = useState<GraphNode[]>([])
 
   const cacheRef   = useRef<Map<string, string>>(new Map())
   const repoUrlRef = useRef('')
+  const allDataRef = useRef<GraphData | null>(null)
+
+  const renderMode = useMemo((): RenderMode => {
+    if (!graphData) return 'tree'
+    const fileCount = graphData.nodes.filter(n => n.type === 'file').length
+    return fileCount < 40 ? 'tree' : 'directory'
+  }, [graphData])
 
   async function handleRepoSubmit(url: string) {
     setLoading(true)
@@ -87,8 +96,10 @@ export default function HomePage() {
     setSelectedFile(null)
     setExplanation(null)
     setHighlightedDirPath(undefined)
+    setDirFiles([])
     repoUrlRef.current = url
     cacheRef.current.clear()
+    allDataRef.current = null
     const parsed = url.match(/github\.com\/[^/]+\/([^/?#]+)/)?.[1]?.replace(/\.git$/, '') ?? ''
     setRepoName(parsed)
 
@@ -100,6 +111,7 @@ export default function HomePage() {
       }
       const data: GraphData = await res.json()
       setGraphData(data)
+      allDataRef.current = data
       preCacheFirstFiles(data, url)
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Unknown error')
@@ -128,11 +140,55 @@ export default function HomePage() {
   }
 
   const handleNodeClick = useCallback(async (node: GraphNode) => {
+    // Directory mode: clicking a dir shows its file list
+    if (renderMode === 'directory' && node.type === 'dir') {
+      const all = allDataRef.current
+      if (!all) return
+      const prefix = node.id === '__root__' ? '' : node.path + '/'
+      const files = all.nodes.filter(n =>
+        n.type === 'file' && (node.id === '__root__' ? true : n.path.startsWith(prefix))
+      ).sort((a, b) => a.name.localeCompare(b.name))
+      setSelectedFile(node)
+      setDirFiles(files)
+      setExplanation(null)
+      setExplainLoading(false)
+      setHighlightedDirPath(undefined)
+      return
+    }
+
+    // Normal file click
+    setDirFiles([])
     const cached = cacheRef.current.get(node.path)
     setSelectedFile(node)
     setExplanation(cached ?? null)
     setExplainLoading(!cached)
     setHighlightedDirPath(undefined)
+
+    if (cached) return
+
+    try {
+      const cr = await fetch(`/api/github?url=${encodeURIComponent(repoUrlRef.current)}&path=${encodeURIComponent(node.path)}`)
+      const { content } = await cr.json()
+      const er = await fetch('/api/explain', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, filename: node.name }),
+      })
+      const { explanation } = await er.json()
+      cacheRef.current.set(node.path, explanation)
+      setExplanation(explanation)
+    } catch {
+      setExplanation('Failed to load explanation.')
+    } finally {
+      setExplainLoading(false)
+    }
+  }, [renderMode])
+
+  const handleFileFromList = useCallback(async (node: GraphNode) => {
+    setDirFiles([])
+    const cached = cacheRef.current.get(node.path)
+    setSelectedFile(node)
+    setExplanation(cached ?? null)
+    setExplainLoading(!cached)
 
     if (cached) return
 
@@ -176,6 +232,7 @@ export default function HomePage() {
             selectedNodeId={selectedFile?.id}
             highlightedDirPath={highlightedDirPath}
             repoName={repoName}
+            renderMode={renderMode}
           />
         ) : (
           <EmptyState onExample={url => { setRepoUrl(url) }} />
@@ -210,8 +267,10 @@ export default function HomePage() {
             extension={selectedFile?.extension ?? null}
             explanation={explanation}
             loading={explainLoading}
-            onClose={() => { setSelectedFile(null); setExplanation(null); setHighlightedDirPath(undefined) }}
+            onClose={() => { setSelectedFile(null); setExplanation(null); setHighlightedDirPath(undefined); setDirFiles([]) }}
             onBreadcrumbClick={handleBreadcrumbClick}
+            fileList={dirFiles.length > 0 ? dirFiles : undefined}
+            onFileSelect={handleFileFromList}
           />
         )}
       </div>

@@ -2,6 +2,8 @@
 
 import { COLOR_MAP, DEFAULT_COLOR } from '@/lib/fileColors'
 
+import type { GraphNode } from '@/types'
+
 interface Props {
   filename: string | null
   filepath: string | null
@@ -10,9 +12,11 @@ interface Props {
   loading: boolean
   onClose: () => void
   onBreadcrumbClick: (dirPath: string) => void
+  fileList?: GraphNode[]
+  onFileSelect?: (node: GraphNode) => void
 }
 
-export function Sidebar({ filename, filepath, extension, explanation, loading, onClose, onBreadcrumbClick }: Props) {
+export function Sidebar({ filename, filepath, extension, explanation, loading, onClose, onBreadcrumbClick, fileList, onFileSelect }: Props) {
   if (!filename) return null
 
   const badgeColor = extension ? (COLOR_MAP[extension.toLowerCase()] ?? DEFAULT_COLOR) : DEFAULT_COLOR
@@ -102,7 +106,36 @@ export function Sidebar({ filename, filepath, extension, explanation, loading, o
 
       {/* Body */}
       <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-        {loading ? (
+        {fileList && fileList.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <p style={{ fontSize: '12px', color: '#9ca3af', margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 500 }}>
+              {fileList.length} files
+            </p>
+            {fileList.map(f => {
+              const color = COLOR_MAP[f.extension?.toLowerCase() ?? ''] ?? DEFAULT_COLOR
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => onFileSelect?.(f)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '6px 8px', borderRadius: '6px',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    textAlign: 'left', width: '100%',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                >
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {f.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ) : loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div className="shimmer-line" style={{ height: '14px', width: '100%' }} />
             <div className="shimmer-line" style={{ height: '14px', width: '88%' }} />
