@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { RepoInput } from '@/components/RepoInput'
 import { Sidebar } from '@/components/Sidebar'
+import { ChatBox } from '@/components/ChatBox'
 import type { GraphData, GraphNode } from '@/types'
 import type { RenderMode } from '@/components/ForceGraph'
 
@@ -72,23 +73,39 @@ function LoadingState() {
 export default function HomePage() {
   const [repoUrl, setRepoUrl]           = useState('')
   const [repoName, setRepoName]         = useState('')
+  const [repoOwner, setRepoOwner]       = useState('')
   const [graphData, setGraphData]       = useState<GraphData | null>(null)
   const [loading, setLoading]           = useState(false)
   const [selectedFile, setSelectedFile] = useState<GraphNode | null>(null)
   const [explanation, setExplanation]   = useState<string | null>(null)
   const [explainLoading, setExplainLoading] = useState(false)
   const [highlightedDirPath, setHighlightedDirPath] = useState<string | undefined>(undefined)
-  const [dirFiles, setDirFiles] = useState<GraphNode[]>([])
+  const [dirFiles, setDirFiles]         = useState<GraphNode[]>([])
 
-  const cacheRef   = useRef<Map<string, string>>(new Map())
-  const repoUrlRef = useRef('')
-  const allDataRef = useRef<GraphData | null>(null)
+  const [isChatOpen, setIsChatOpen]     = useState(false)
+  const [hasOpenedChat, setHasOpenedChat] = useState(false)
+  const [chatCurrentFile, setChatCurrentFile] = useState<{ path: string; contents: string } | null>(null)
+
+  const cacheRef    = useRef<Map<string, string>>(new Map())
+  const contentsRef = useRef<Map<string, string>>(new Map())
+  const repoUrlRef  = useRef('')
+  const allDataRef  = useRef<GraphData | null>(null)
 
   const renderMode = useMemo((): RenderMode => {
     if (!graphData) return 'tree'
     const fileCount = graphData.nodes.filter(n => n.type === 'file').length
     return fileCount < 40 ? 'tree' : 'directory'
   }, [graphData])
+
+  const repoContext = useMemo(() => {
+    if (!graphData || !repoOwner || !repoName) return null
+    return { owner: repoOwner, repo: repoName, branch: 'main' }
+  }, [graphData, repoOwner, repoName])
+
+  function openChat() {
+    setIsChatOpen(true)
+    setHasOpenedChat(true)
+  }
 
   async function handleRepoSubmit(url: string) {
     setLoading(true)
@@ -97,11 +114,15 @@ export default function HomePage() {
     setExplanation(null)
     setHighlightedDirPath(undefined)
     setDirFiles([])
+    setChatCurrentFile(null)
     repoUrlRef.current = url
     cacheRef.current.clear()
+    contentsRef.current.clear()
     allDataRef.current = null
-    const parsed = url.match(/github\.com\/[^/]+\/([^/?#]+)/)?.[1]?.replace(/\.git$/, '') ?? ''
-    setRepoName(parsed)
+
+    const match = url.match(/github\.com\/([^/]+)\/([^/?#]+)/)
+    setRepoOwner(match?.[1] ?? '')
+    setRepoName(match?.[2]?.replace(/\.git$/, '') ?? '')
 
     try {
       const res = await fetch(`/api/github?url=${encodeURIComponent(url)}`)
@@ -129,6 +150,7 @@ export default function HomePage() {
       try {
         const cr = await fetch(`/api/github?url=${encodeURIComponent(url)}&path=${encodeURIComponent(node.path)}`)
         const { content } = await cr.json()
+        if (content) contentsRef.current.set(node.path, content)
         const er = await fetch('/api/explain', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ content, filename: node.name }),
@@ -164,18 +186,28 @@ export default function HomePage() {
     setExplainLoading(!cached)
     setHighlightedDirPath(undefined)
 
-    if (cached) return
+    // Set chat context from cache if available
+    const cachedContents = contentsRef.current.get(node.path)
+    if (cachedContents) setChatCurrentFile({ path: node.path, contents: cachedContents })
+
+    if (cached && cachedContents) return
 
     try {
       const cr = await fetch(`/api/github?url=${encodeURIComponent(repoUrlRef.current)}&path=${encodeURIComponent(node.path)}`)
       const { content } = await cr.json()
-      const er = await fetch('/api/explain', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, filename: node.name }),
-      })
-      const { explanation } = await er.json()
-      cacheRef.current.set(node.path, explanation)
-      setExplanation(explanation)
+      if (content) {
+        contentsRef.current.set(node.path, content)
+        setChatCurrentFile({ path: node.path, contents: content })
+      }
+      if (!cached) {
+        const er = await fetch('/api/explain', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, filename: node.name }),
+        })
+        const { explanation } = await er.json()
+        cacheRef.current.set(node.path, explanation)
+        setExplanation(explanation)
+      }
     } catch {
       setExplanation('Failed to load explanation.')
     } finally {
@@ -190,18 +222,27 @@ export default function HomePage() {
     setExplanation(cached ?? null)
     setExplainLoading(!cached)
 
-    if (cached) return
+    const cachedContents = contentsRef.current.get(node.path)
+    if (cachedContents) setChatCurrentFile({ path: node.path, contents: cachedContents })
+
+    if (cached && cachedContents) return
 
     try {
       const cr = await fetch(`/api/github?url=${encodeURIComponent(repoUrlRef.current)}&path=${encodeURIComponent(node.path)}`)
       const { content } = await cr.json()
-      const er = await fetch('/api/explain', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, filename: node.name }),
-      })
-      const { explanation } = await er.json()
-      cacheRef.current.set(node.path, explanation)
-      setExplanation(explanation)
+      if (content) {
+        contentsRef.current.set(node.path, content)
+        setChatCurrentFile({ path: node.path, contents: content })
+      }
+      if (!cached) {
+        const er = await fetch('/api/explain', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, filename: node.name }),
+        })
+        const { explanation } = await er.json()
+        cacheRef.current.set(node.path, explanation)
+        setExplanation(explanation)
+      }
     } catch {
       setExplanation('Failed to load explanation.')
     } finally {
@@ -213,8 +254,23 @@ export default function HomePage() {
     setHighlightedDirPath(prev => prev === dirPath ? undefined : dirPath)
   }
 
+  const fileSelected = !!selectedFile && selectedFile.type === 'file'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: '#fafafa' }}>
+      <style>{`
+        @keyframes chatBounce {
+          0%, 100% { transform: translateY(0); }
+          30%       { transform: translateY(-6px); }
+          60%       { transform: translateY(-3px); }
+        }
+        @keyframes chatRing {
+          0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0.5); }
+          70%  { box-shadow: 0 0 0 10px rgba(99,102,241,0); }
+          100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+        }
+      `}</style>
+
       <RepoInput
         value={repoUrl}
         onChange={setRepoUrl}
@@ -238,7 +294,7 @@ export default function HomePage() {
           <EmptyState onExample={url => { setRepoUrl(url) }} />
         )}
 
-        {/* Instruction hint — shown when graph loaded but nothing selected */}
+        {/* Instruction hint */}
         {graphData && !selectedFile && !loading && (
           <div style={{
             position: 'absolute',
@@ -273,7 +329,83 @@ export default function HomePage() {
             onFileSelect={handleFileFromList}
           />
         )}
+
+        {/* Floating chat button */}
+        {graphData && !isChatOpen && (
+          <div style={{ position: 'fixed', bottom: '60px', right: '20px', zIndex: 40 }}>
+            {/* Tooltip */}
+            <div className="chat-tooltip" style={{
+              position: 'absolute', bottom: '56px', right: 0,
+              background: '#111827', color: '#fff',
+              fontSize: '12px', borderRadius: '6px', padding: '5px 10px',
+              whiteSpace: 'nowrap', pointerEvents: 'none',
+              opacity: 0, transition: 'opacity 0.15s',
+            }}>
+              Ask about this codebase
+              <div style={{
+                position: 'absolute', bottom: '-4px', right: '18px',
+                width: '8px', height: '8px', background: '#111827',
+                transform: 'rotate(45deg)',
+              }} />
+            </div>
+
+            <style>{`.chat-btn:hover + * { opacity: 0 !important } .chat-btn-wrap:hover .chat-tooltip { opacity: 1 !important }`}</style>
+
+            <div className="chat-btn-wrap" style={{ position: 'relative' }}>
+              <button
+                onClick={openChat}
+                style={{
+                  width: '48px', height: '48px', borderRadius: '50%',
+                  background: '#6366f1', color: '#ffffff',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
+                  animation: fileSelected
+                    ? 'chatRing 1.5s ease-out infinite'
+                    : `chatBounce 1s ease-out 0.8s 2`,
+                  transition: 'background 0.15s, transform 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget.style.background = '#4f46e5'); (e.currentTarget.style.transform = 'scale(1.08)') }}
+                onMouseLeave={e => { (e.currentTarget.style.background = '#6366f1'); (e.currentTarget.style.transform = 'scale(1)') }}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path d="M2 4.5A2.5 2.5 0 014.5 2h11A2.5 2.5 0 0118 4.5v7a2.5 2.5 0 01-2.5 2.5H11l-3.5 3v-3H4.5A2.5 2.5 0 012 11.5v-7z"
+                    fill="white" fillOpacity="0.95" />
+                </svg>
+                {/* Unread dot */}
+                {!hasOpenedChat && (
+                  <div style={{
+                    position: 'absolute', top: '2px', right: '2px',
+                    width: '10px', height: '10px', borderRadius: '50%',
+                    background: '#ef4444', border: '2px solid #ffffff',
+                  }} />
+                )}
+              </button>
+              <div className="chat-tooltip" style={{
+                position: 'absolute', bottom: '56px', right: 0,
+                background: '#111827', color: '#fff',
+                fontSize: '12px', borderRadius: '6px', padding: '5px 10px',
+                whiteSpace: 'nowrap', pointerEvents: 'none',
+                opacity: 0, transition: 'opacity 0.15s',
+              }}>
+                {fileSelected ? `Ask about ${selectedFile!.name}` : 'Ask about this codebase'}
+                <div style={{
+                  position: 'absolute', bottom: '-4px', right: '18px',
+                  width: '8px', height: '8px', background: '#111827',
+                  transform: 'rotate(45deg)',
+                }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      <ChatBox
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        repoContext={repoContext}
+        currentFile={chatCurrentFile}
+      />
     </div>
   )
 }
