@@ -6,10 +6,11 @@ interface Props {
   value: string
   onChange: (url: string) => void
   onSubmit: (url: string) => void
+  onReset: () => void
   loading: boolean
 }
 
-export function RepoInput({ value, onChange, onSubmit, loading }: Props) {
+export function RepoInput({ value, onChange, onSubmit, onReset, loading }: Props) {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const trimmed = value.trim()
@@ -28,8 +29,17 @@ export function RepoInput({ value, onChange, onSubmit, loading }: Props) {
       gap: '16px',
       flexShrink: 0,
     }}>
-      {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+      {/* Logo — click to reset */}
+      <button
+        onClick={onReset}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0,
+          background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px',
+          borderRadius: '6px', transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+      >
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <rect x="1" y="1" width="7" height="7" rx="1.5" fill="#6366f1" />
           <rect x="10" y="1" width="7" height="7" rx="1.5" fill="#6366f1" />
@@ -39,7 +49,7 @@ export function RepoInput({ value, onChange, onSubmit, loading }: Props) {
         <span style={{ fontWeight: 600, fontSize: '15px', color: '#111827', letterSpacing: '-0.01em' }}>
           CodeVisualise
         </span>
-      </div>
+      </button>
 
       {/* Input — centered */}
       <form

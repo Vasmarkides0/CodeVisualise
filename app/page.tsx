@@ -15,42 +15,81 @@ const ForceGraph = dynamic(
 
 const INTERESTING_EXTS = new Set(['ts', 'tsx', 'js', 'jsx', 'py'])
 
-const EXAMPLES = [
-  'vercel/next.js',
-  'facebook/react',
-  'anthropics/anthropic-sdk-python',
+const EXAMPLE_ROWS = [
+  ['vercel/next.js', 'facebook/react', 'anthropics/anthropic-sdk-python'],
+  ['torvalds/linux', 'Vasmarkides0/CodeVisualise'],
 ]
+
+const FEATURE_PILLS = ['🌳 Visual tree', '🤖 AI explanations', '💬 Ask questions']
 
 function EmptyState({ onExample }: { onExample: (url: string) => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '16px' }}>
-      <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
-        <circle cx="32" cy="14" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <circle cx="14" cy="50" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <circle cx="50" cy="50" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <line x1="32" y1="23" x2="14" y2="41" stroke="#6366f1" strokeWidth="1.5" strokeOpacity="0.4" />
-        <line x1="32" y1="23" x2="50" y2="41" stroke="#6366f1" strokeWidth="1.5" strokeOpacity="0.4" />
-        <line x1="23" y1="50" x2="41" y2="50" stroke="#6366f1" strokeWidth="1.5" strokeOpacity="0.4" />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '24px', padding: '40px 20px' }}>
+      <style>{`
+        @keyframes nodePulse {
+          0%, 100% { r: 9; opacity: 1; }
+          50%       { r: 11; opacity: 0.7; }
+        }
+        @keyframes lineFade {
+          0%, 100% { stroke-opacity: 0.25; }
+          50%       { stroke-opacity: 0.7; }
+        }
+        .es-node { animation: nodePulse 2.4s ease-in-out infinite; }
+        .es-node:nth-child(2) { animation-delay: 0.8s; }
+        .es-node:nth-child(3) { animation-delay: 1.6s; }
+        .es-line { animation: lineFade 2.4s ease-in-out infinite; }
+        .es-line:nth-child(5) { animation-delay: 0.4s; }
+        .es-line:nth-child(6) { animation-delay: 1.2s; }
+        .es-chip:hover { background: #f9fafb !important; border-color: #6366f1 !important; color: #374151 !important; }
+      `}</style>
+
+      {/* Animated icon */}
+      <svg width="100" height="80" viewBox="0 0 100 80" fill="none">
+        <circle className="es-node" cx="50" cy="12" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
+        <circle className="es-node" cx="20" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
+        <circle className="es-node" cx="80" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
+        <line className="es-line" x1="50" y1="21" x2="20" y2="53" stroke="#6366f1" strokeWidth="1.5" />
+        <line className="es-line" x1="50" y1="21" x2="80" y2="53" stroke="#6366f1" strokeWidth="1.5" />
+        <line className="es-line" x1="29" y1="62" x2="71" y2="62" stroke="#6366f1" strokeWidth="1.5" />
       </svg>
-      <div style={{ textAlign: 'center' }}>
-        <h2 style={{ fontSize: '22px', fontWeight: 600, color: '#111827', margin: '0 0 8px' }}>
-          Visualize any GitHub repository
+
+      {/* Heading + subheading */}
+      <div style={{ textAlign: 'center', maxWidth: '480px' }}>
+        <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '0 0 12px', lineHeight: 1.2 }}>
+          Understand any codebase instantly
         </h2>
-        <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-          Paste a GitHub URL above to explore its file structure
+        <p style={{ fontSize: '15px', color: '#6b7280', margin: 0, lineHeight: 1.6, maxWidth: '420px' }}>
+          Paste a GitHub URL to visualise its structure and ask AI questions about any file
         </p>
       </div>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {EXAMPLES.map(ex => (
-          <button key={ex} onClick={() => onExample(`https://github.com/${ex}`)} style={{
-            border: '1px solid #e5e7eb', borderRadius: '20px', padding: '4px 12px',
-            fontSize: '12px', color: '#6b7280', background: '#ffffff', cursor: 'pointer',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.background = '#f9fafb')}
-            onMouseLeave={e => (e.currentTarget.style.background = '#ffffff')}
-          >
-            {ex}
-          </button>
+
+      {/* Example chips */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+        {EXAMPLE_ROWS.map((row, ri) => (
+          <div key={ri} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            {row.map(ex => (
+              <button
+                key={ex}
+                className="es-chip"
+                onClick={() => onExample(`https://github.com/${ex}`)}
+                style={{
+                  border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px',
+                  fontSize: '13px', color: '#6b7280', background: '#ffffff', cursor: 'pointer',
+                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Feature pills */}
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {FEATURE_PILLS.map(p => (
+          <span key={p} style={{ fontSize: '12px', color: '#9ca3af' }}>{p}</span>
         ))}
       </div>
     </div>
@@ -101,6 +140,25 @@ export default function HomePage() {
     if (!graphData || !repoOwner || !repoName) return null
     return { owner: repoOwner, repo: repoName, branch: 'main' }
   }, [graphData, repoOwner, repoName])
+
+  function handleReset() {
+    setRepoUrl('')
+    setRepoName('')
+    setRepoOwner('')
+    setGraphData(null)
+    setSelectedFile(null)
+    setExplanation(null)
+    setExplainLoading(false)
+    setHighlightedDirPath(undefined)
+    setDirFiles([])
+    setIsChatOpen(false)
+    setHasOpenedChat(false)
+    setChatCurrentFile(null)
+    cacheRef.current.clear()
+    contentsRef.current.clear()
+    allDataRef.current = null
+    repoUrlRef.current = ''
+  }
 
   function openChat() {
     setIsChatOpen(true)
@@ -275,6 +333,7 @@ export default function HomePage() {
         value={repoUrl}
         onChange={setRepoUrl}
         onSubmit={handleRepoSubmit}
+        onReset={handleReset}
         loading={loading}
       />
 
