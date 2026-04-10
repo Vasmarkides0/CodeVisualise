@@ -175,17 +175,10 @@ export function ForceGraph({ data, onNodeClick, selectedNodeId, highlightedDirPa
           .nodeSize([40, 180])
           .separation((a, b) => a.parent === b.parent ? 1 : 1.5)(hier)
       } else {
-        // Directory mode: top-to-bottom, dirs only
-        const baseW = 110
+        // Directory mode: LTR, dirs only
         treeData = d3.tree<GraphNode>()
-          .nodeSize([baseW, 100])
-          .separation((a, b) => {
-            const la = badgeLabel(a.data, fileCounts, repoName)
-            const lb = badgeLabel(b.data, fileCounts, repoName)
-            const wa = dirW(la) / baseW
-            const wb = dirW(lb) / baseW
-            return a.parent === b.parent ? (wa + wb) / 2 + 0.2 : (wa + wb) / 2 + 0.6
-          })(hier)
+          .nodeSize([60, 220])
+          .separation((a, b) => a.parent === b.parent ? 1 : 1.5)(hier)
       }
     } catch {
       return
@@ -200,39 +193,18 @@ export function ForceGraph({ data, onNodeClick, selectedNodeId, highlightedDirPa
     const rootG = svg.append('g')
 
     function fitToViewport() {
-      const pts = treeData.descendants()
+      const bb  = rootG.node()!.getBBox()
       const pad = 60
-      if (renderMode === 'tree') {
-        // LTR: screen x = d.y, screen y = d.x
-        const xs   = pts.map(d => d.y)
-        const ys   = pts.map(d => d.x)
-        const minX = Math.min(...xs) - 40
-        const maxX = Math.max(...xs) + 60
-        const minY = Math.min(...ys) - 24
-        const maxY = Math.max(...ys) + 24
-        const tw   = maxX - minX, th = maxY - minY
-        const scale = Math.min(1.2, (width - pad * 2) / tw, (height - pad * 2) / th)
-        svg.transition().duration(600).call(zoom.transform,
-          d3.zoomIdentity.translate(pad - minX * scale, (height - th * scale) / 2 - minY * scale).scale(scale))
-      } else {
-        // Top-to-bottom: screen x = d.x, screen y = d.y
-        const xs   = pts.map(d => d.x)
-        const ys   = pts.map(d => d.y)
-        const minX = Math.min(...xs) - 60
-        const maxX = Math.max(...xs) + 60
-        const minY = Math.min(...ys) - 24
-        const maxY = Math.max(...ys) + 44
-        const tw   = maxX - minX, th = maxY - minY
-        const scale = Math.min(1.4, (width - pad * 2) / tw, (height - pad * 2) / th)
-        svg.transition().duration(600).call(zoom.transform,
-          d3.zoomIdentity.translate((width - tw * scale) / 2 - minX * scale, pad - minY * scale).scale(scale))
-      }
+      if (bb.width === 0 || bb.height === 0) return
+      const scale = Math.min((width - pad * 2) / bb.width, (height - pad * 2) / bb.height)
+      svg.transition().duration(600).call(zoom.transform,
+        d3.zoomIdentity
+          .translate(pad - bb.x * scale, (height - bb.height * scale) / 2 - bb.y * scale)
+          .scale(scale))
     }
 
     // ── Links ────────────────────────────────────────────────────────────────
-    const linkGen = renderMode === 'tree'
-      ? d3.linkHorizontal<HL, HN>().x(d => d.y).y(d => d.x)
-      : d3.linkVertical<HL, HN>().x(d => d.x).y(d => d.y)
+    const linkGen = d3.linkHorizontal<HL, HN>().x(d => d.y).y(d => d.x)
 
     rootG.append('g')
       .selectAll<SVGPathElement, HL>('path')
@@ -247,9 +219,7 @@ export function ForceGraph({ data, onNodeClick, selectedNodeId, highlightedDirPa
       .attr('opacity', 1)
 
     // ── Node groups (all start at tree root) ─────────────────────────────────
-    const startT = renderMode === 'tree'
-      ? `translate(${treeData.y},${treeData.x})`
-      : `translate(${treeData.x},${treeData.y})`
+    const startT = `translate(${treeData.y},${treeData.x})`
 
     const nodeGs: NodeSel = rootG.append('g')
       .selectAll<SVGGElement, HN>('g')
@@ -372,9 +342,7 @@ export function ForceGraph({ data, onNodeClick, selectedNodeId, highlightedDirPa
     // ── Fly-in animation ─────────────────────────────────────────────────────
     nodeGs.transition()
       .duration(800).ease(d3.easeCubicOut)
-      .attr('transform', d => renderMode === 'tree'
-        ? `translate(${d.y},${d.x})`
-        : `translate(${d.x},${d.y})`)
+      .attr('transform', d => `translate(${d.y},${d.x})`)
 
     svg.on('dblclick', fitToViewport)
 

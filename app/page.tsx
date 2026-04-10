@@ -357,21 +357,20 @@ export default function HomePage() {
         {graphData && !selectedFile && !loading && (
           <div style={{
             position: 'absolute',
-            bottom: '72px',
+            bottom: '16px',
             left: '50%',
             transform: 'translateX(-50%)',
-            border: '1px dashed #d1d5db',
-            borderRadius: '8px',
-            padding: '10px 18px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '20px',
+            padding: '6px 16px',
             fontSize: '13px',
             color: '#9ca3af',
-            background: 'rgba(255,255,255,0.85)',
-            backdropFilter: 'blur(4px)',
+            background: '#ffffff',
             pointerEvents: 'none',
             whiteSpace: 'nowrap',
             zIndex: 5,
           }}>
-            ← Click any file node to understand what it does
+            Click any file node to understand what it does
           </div>
         )}
 
