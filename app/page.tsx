@@ -15,9 +15,10 @@ const ForceGraph = dynamic(
 
 const INTERESTING_EXTS = new Set(['ts', 'tsx', 'js', 'jsx', 'py'])
 
-const EXAMPLE_ROWS = [
-  ['vercel/next.js', 'facebook/react', 'anthropics/anthropic-sdk-python'],
-  ['torvalds/linux', 'Vasmarkides0/CodeVisualise'],
+const EXAMPLE_REPOS = [
+  'anthropics/anthropic-sdk-python',
+  'github/copilot-engine-sdk',
+  'Vasmarkides0/CodeVisualise',
 ]
 
 const FEATURE_PILLS = ['🌳 Visual tree', '🤖 AI explanations', '💬 Ask questions']
@@ -44,7 +45,7 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
       `}</style>
 
       {/* Animated icon */}
-      <svg width="100" height="80" viewBox="0 0 100 80" fill="none">
+      <svg width="150" height="120" viewBox="0 0 100 80" fill="none">
         <circle className="es-node" cx="50" cy="12" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
         <circle className="es-node" cx="20" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
         <circle className="es-node" cx="80" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
@@ -55,7 +56,7 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
 
       {/* Heading + subheading */}
       <div style={{ textAlign: 'center', maxWidth: '480px' }}>
-        <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#111827', margin: '0 0 12px', lineHeight: 1.2 }}>
+        <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#111827', margin: '0 0 12px', lineHeight: 1.2 }}>
           Understand any codebase instantly
         </h2>
         <p style={{ fontSize: '15px', color: '#6b7280', margin: 0, lineHeight: 1.6, maxWidth: '420px' }}>
@@ -64,25 +65,21 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
       </div>
 
       {/* Example chips */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
-        {EXAMPLE_ROWS.map((row, ri) => (
-          <div key={ri} style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {row.map(ex => (
-              <button
-                key={ex}
-                className="es-chip"
-                onClick={() => onExample(`https://github.com/${ex}`)}
-                style={{
-                  border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px',
-                  fontSize: '13px', color: '#6b7280', background: '#ffffff', cursor: 'pointer',
-                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-                  fontFamily: 'inherit',
-                }}
-              >
-                {ex}
-              </button>
-            ))}
-          </div>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        {EXAMPLE_REPOS.map(ex => (
+          <button
+            key={ex}
+            className="es-chip"
+            onClick={() => onExample(`https://github.com/${ex}`)}
+            style={{
+              border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px',
+              fontSize: '13px', color: '#6b7280', background: '#ffffff', cursor: 'pointer',
+              transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              fontFamily: 'inherit',
+            }}
+          >
+            {ex}
+          </button>
         ))}
       </div>
 
