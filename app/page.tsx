@@ -106,7 +106,7 @@ function MiniTreePreview() {
   }, [])
 
   return (
-    <svg width={300} height={200} viewBox="0 0 300 200" style={{ display: 'block', overflow: 'visible' }}>
+    <svg width={300} height={200} viewBox="0 0 300 200" style={{ display: 'block' }}>
       {links.map((link, i) => (
         <line
           key={i}
@@ -116,19 +116,22 @@ function MiniTreePreview() {
         />
       ))}
       {nodes.map((node, i) => {
-        const c = node.data.type === 'dir' ? DIR_COLOR : (COLOR_MAP[node.data.extension] ?? DEFAULT_COLOR)
-        const r = node.data.type === 'dir' ? 6 : 4
+        const c = node.data.type === 'dir'
+          ? '#9ca3af'
+          : (COLOR_MAP[node.data.extension] ?? DEFAULT_COLOR)
+        const r = node.data.type === 'dir' ? 6 : 4.5
         return (
-          <g
-            key={i}
-            transform={`translate(${node.x + 30}, ${node.y + 30})`}
-            style={{
-              animation: `breathe 3s ease-in-out ${node.depth * 0.7}s infinite`,
-              transformBox: 'fill-box',
-              transformOrigin: 'center',
-            }}
-          >
-            <circle r={r} fill={c} fillOpacity={0.9} />
+          <g key={i} transform={`translate(${node.x + 30}, ${node.y + 30})`}>
+            <circle
+              r={r}
+              fill={c}
+              fillOpacity={0.9}
+              style={{
+                animation: `breathe 3s ease-in-out ${node.depth * 0.7}s infinite`,
+                transformBox: 'fill-box',
+                transformOrigin: 'center',
+              }}
+            />
           </g>
         )
       })}
@@ -141,7 +144,7 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
     <div style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center',
       justifyContent: 'center', height: '100%', padding: '40px 20px',
-      backgroundImage: 'radial-gradient(rgba(229,231,235,0.5) 1px, transparent 0)',
+      backgroundImage: 'radial-gradient(circle, rgba(209,213,219,0.4) 1px, transparent 1px)',
       backgroundSize: '24px 24px',
     }}>
       <style>{`
@@ -166,12 +169,12 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
         .feature-card {
           border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 20px;
           background: #ffffff; display: flex; flex-direction: column; gap: 6px;
-          min-width: 180px; max-width: 210px; flex: 1;
+          min-width: 180px; max-width: 210px; flex: 1; cursor: pointer;
           transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .feature-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
         }
       `}</style>
 
