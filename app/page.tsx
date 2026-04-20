@@ -7,6 +7,8 @@ import { Sidebar } from '@/components/Sidebar'
 import { ChatBox } from '@/components/ChatBox'
 import type { GraphData, GraphNode } from '@/types'
 import type { RenderMode } from '@/components/ForceGraph'
+import * as d3 from 'd3'
+import { COLOR_MAP, DIR_COLOR, DEFAULT_COLOR } from '@/lib/fileColors'
 
 const ForceGraph = dynamic(
   () => import('@/components/ForceGraph').then(m => m.ForceGraph),
@@ -21,41 +23,165 @@ const EXAMPLE_REPOS = [
   'Vasmarkides0/CodeVisualise',
 ]
 
-const FEATURE_PILLS = ['🌳 Visual tree', '🤖 AI explanations', '💬 Ask questions']
+type TreeNodeDatum = { name: string; type: 'dir' | 'file'; extension: string; children?: TreeNodeDatum[] }
+
+const TREE_DATA: TreeNodeDatum = {
+  name: 'repo', type: 'dir', extension: '',
+  children: [
+    {
+      name: 'src', type: 'dir', extension: '',
+      children: [
+        { name: 'App.tsx',   type: 'file', extension: 'tsx' },
+        { name: 'index.ts',  type: 'file', extension: 'ts'  },
+        {
+          name: 'components', type: 'dir', extension: '',
+          children: [
+            { name: 'Button.tsx', type: 'file', extension: 'tsx' },
+            { name: 'Card.tsx',   type: 'file', extension: 'tsx' },
+            { name: 'Header.tsx', type: 'file', extension: 'tsx' },
+          ]
+        },
+        {
+          name: 'utils', type: 'dir', extension: '',
+          children: [
+            { name: 'helpers.ts', type: 'file', extension: 'ts' },
+            { name: 'format.ts',  type: 'file', extension: 'ts' },
+          ]
+        },
+      ]
+    },
+    { name: 'package.json', type: 'file', extension: 'json' },
+    { name: 'README.md',    type: 'file', extension: 'md'   },
+  ]
+}
+
+const FEATURE_CARDS = [
+  {
+    name: 'Visual tree',
+    desc: 'See your entire repo structure at a glance',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="4"  r="2.2" fill="#6366f1" />
+        <circle cx="5"  cy="15" r="2.2" fill="#6366f1" />
+        <circle cx="19" cy="15" r="2.2" fill="#6366f1" />
+        <line x1="12" y1="6.2"  x2="5.8"  y2="12.8" stroke="#6366f1" strokeWidth="1.5" />
+        <line x1="12" y1="6.2"  x2="18.2" y2="12.8" stroke="#6366f1" strokeWidth="1.5" />
+        <line x1="5"  y1="17.2" x2="5"    y2="21"   stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="19" y1="17.2" x2="19"   y2="21"   stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'AI explanations',
+    desc: 'Click any file for a plain English summary',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2a7 7 0 0 1 5 11.95V16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-2.05A7 7 0 0 1 12 2z"
+          stroke="#f59e0b" strokeWidth="1.5" strokeLinejoin="round" />
+        <line x1="9"  y1="20" x2="15" y2="20" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+        <line x1="10" y1="22" x2="14" y2="22" stroke="#f59e0b" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
+    name: 'Ask questions',
+    desc: 'Chat with AI about the codebase',
+    icon: (
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+        <path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h13A2.5 2.5 0 0 1 21 6.5v8A2.5 2.5 0 0 1 18.5 17H13l-4 3.5V17H5.5A2.5 2.5 0 0 1 3 14.5v-8z"
+          stroke="#10b981" strokeWidth="1.5" strokeLinejoin="round" />
+        <circle cx="8"  cy="10.5" r="1" fill="#10b981" />
+        <circle cx="12" cy="10.5" r="1" fill="#10b981" />
+        <circle cx="16" cy="10.5" r="1" fill="#10b981" />
+      </svg>
+    ),
+  },
+]
+
+function MiniTreePreview() {
+  const { nodes, links } = useMemo(() => {
+    const root = d3.hierarchy(TREE_DATA)
+    const pts = d3.tree<TreeNodeDatum>().size([240, 130])(root)
+    return { nodes: pts.descendants(), links: pts.links() }
+  }, [])
+
+  return (
+    <svg width={300} height={200} viewBox="0 0 300 200" style={{ display: 'block', overflow: 'visible' }}>
+      {links.map((link, i) => (
+        <line
+          key={i}
+          x1={link.source.x + 30} y1={link.source.y + 30}
+          x2={link.target.x + 30} y2={link.target.y + 30}
+          stroke="#d1d5db" strokeWidth={1.5}
+        />
+      ))}
+      {nodes.map((node, i) => {
+        const c = node.data.type === 'dir' ? DIR_COLOR : (COLOR_MAP[node.data.extension] ?? DEFAULT_COLOR)
+        const r = node.data.type === 'dir' ? 6 : 4
+        return (
+          <g
+            key={i}
+            transform={`translate(${node.x + 30}, ${node.y + 30})`}
+            style={{
+              animation: `breathe 3s ease-in-out ${node.depth * 0.7}s infinite`,
+              transformBox: 'fill-box',
+              transformOrigin: 'center',
+            }}
+          >
+            <circle r={r} fill={c} fillOpacity={0.9} />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
 
 function EmptyState({ onExample }: { onExample: (url: string) => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '24px', padding: '40px 20px' }}>
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', height: '100%', padding: '40px 20px',
+      backgroundImage: 'radial-gradient(rgba(229,231,235,0.5) 1px, transparent 0)',
+      backgroundSize: '24px 24px',
+    }}>
       <style>{`
-        @keyframes nodePulse {
-          0%, 100% { r: 9; opacity: 1; }
-          50%       { r: 11; opacity: 0.7; }
+        @keyframes breathe {
+          0%, 100% { transform: scale(1); }
+          50%       { transform: scale(1.03); }
         }
-        @keyframes lineFade {
-          0%, 100% { stroke-opacity: 0.25; }
-          50%       { stroke-opacity: 0.7; }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        .es-node { animation: nodePulse 2.4s ease-in-out infinite; }
-        .es-node:nth-child(2) { animation-delay: 0.8s; }
-        .es-node:nth-child(3) { animation-delay: 1.6s; }
-        .es-line { animation: lineFade 2.4s ease-in-out infinite; }
-        .es-line:nth-child(5) { animation-delay: 0.4s; }
-        .es-line:nth-child(6) { animation-delay: 1.2s; }
-        .es-chip:hover { background: #f9fafb !important; border-color: #6366f1 !important; color: #374151 !important; }
+        .es-chip {
+          border: 1px solid #e5e7eb; border-radius: 8px; padding: 8px 14px;
+          font-size: 13px; color: #6b7280; background: #ffffff; cursor: pointer;
+          transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+          font-family: inherit; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .es-chip:hover {
+          background: #f5f3ff; border-color: #6366f1; color: #4f46e5;
+          transform: scale(1.04); box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+        }
+        .feature-card {
+          border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px 20px;
+          background: #ffffff; display: flex; flex-direction: column; gap: 6px;
+          min-width: 180px; max-width: 210px; flex: 1;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        .feature-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        }
       `}</style>
 
-      {/* Animated icon */}
-      <svg width="150" height="120" viewBox="0 0 100 80" fill="none">
-        <circle className="es-node" cx="50" cy="12" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <circle className="es-node" cx="20" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <circle className="es-node" cx="80" cy="62" r="9" fill="#e0e7ff" stroke="#6366f1" strokeWidth="2" />
-        <line className="es-line" x1="50" y1="21" x2="20" y2="53" stroke="#6366f1" strokeWidth="1.5" />
-        <line className="es-line" x1="50" y1="21" x2="80" y2="53" stroke="#6366f1" strokeWidth="1.5" />
-        <line className="es-line" x1="29" y1="62" x2="71" y2="62" stroke="#6366f1" strokeWidth="1.5" />
-      </svg>
+      {/* Mini tree preview */}
+      <div style={{ marginBottom: '32px', animation: 'fadeInUp 0.8s ease-out forwards' }}>
+        <MiniTreePreview />
+      </div>
 
       {/* Heading + subheading */}
-      <div style={{ textAlign: 'center', maxWidth: '480px' }}>
+      <div style={{ textAlign: 'center', maxWidth: '480px', marginBottom: '32px' }}>
         <h2 style={{ fontSize: '32px', fontWeight: 700, color: '#111827', margin: '0 0 12px', lineHeight: 1.2 }}>
           Understand any codebase instantly
         </h2>
@@ -65,28 +191,29 @@ function EmptyState({ onExample }: { onExample: (url: string) => void }) {
       </div>
 
       {/* Example chips */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '40px' }}>
         {EXAMPLE_REPOS.map(ex => (
           <button
             key={ex}
             className="es-chip"
             onClick={() => onExample(`https://github.com/${ex}`)}
-            style={{
-              border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 16px',
-              fontSize: '13px', color: '#6b7280', background: '#ffffff', cursor: 'pointer',
-              transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-              fontFamily: 'inherit',
-            }}
           >
             {ex}
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ flexShrink: 0 }}>
+              <path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </button>
         ))}
       </div>
 
-      {/* Feature pills */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {FEATURE_PILLS.map(p => (
-          <span key={p} style={{ fontSize: '12px', color: '#9ca3af' }}>{p}</span>
+      {/* Feature cards */}
+      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '700px' }}>
+        {FEATURE_CARDS.map(card => (
+          <div key={card.name} className="feature-card">
+            {card.icon}
+            <span style={{ fontWeight: 600, fontSize: '14px', color: '#111827', marginTop: '2px' }}>{card.name}</span>
+            <span style={{ fontSize: '12px', color: '#9ca3af', lineHeight: 1.5 }}>{card.desc}</span>
+          </div>
         ))}
       </div>
     </div>
@@ -347,7 +474,7 @@ export default function HomePage() {
             renderMode={renderMode}
           />
         ) : (
-          <EmptyState onExample={url => { setRepoUrl(url) }} />
+          <EmptyState onExample={url => { setRepoUrl(url); handleRepoSubmit(url) }} />
         )}
 
         {/* Instruction hint */}
