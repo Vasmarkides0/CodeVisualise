@@ -63,22 +63,24 @@ You paste a GitHub repo URL. The app fetches the full file tree via the GitHub A
 
 ## Project structure
 
+```
 app/
-  page.tsx              — main UI: input bar, graph, sidebar, chat
+  page.tsx                — main UI: input bar, graph, sidebar, chat
   api/
-    github/route.ts     — proxies GitHub API requests
-    explain/route.ts    — file explanations via Claude
-    chat/route.ts       — chat messages via Claude
+    github/route.ts       — proxies GitHub API requests
+    explain/route.ts      — file explanations via Claude
+    chat/route.ts         — chat messages via Claude
 components/
-  ForceGraph.tsx        — D3 tree visualization
-  RepoInput.tsx         — URL input bar
-  Sidebar.tsx           — file explanation panel
+  ForceGraph.tsx          — D3 tree visualization
+  RepoInput.tsx           — URL input bar
+  Sidebar.tsx             — file explanation panel
 lib/
-  github.ts             — GitHub API helpers
-  parseTree.ts          — GitHub tree to D3 nodes/links
-  fileColors.ts         — file extension to color mapping
+  github.ts               — GitHub API helpers
+  parseTree.ts            — GitHub tree to D3 nodes/links
+  fileColors.ts           — file extension to color mapping
 types/
-  index.ts              — shared TypeScript interfaces
+  index.ts                — shared TypeScript interfaces
+```
 
 ## Limitations
 
